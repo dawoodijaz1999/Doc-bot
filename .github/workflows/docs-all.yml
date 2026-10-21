@@ -32,7 +32,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           INCLUDE_PRIVATE: "false"
           MAX_REPOS_PER_RUN: "10"
-        run: python .github/workflows/docbot_all.py
+        run: python .github/scripts/docbot_all.py
 
       - name: Commit if changed
         run: |
