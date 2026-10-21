@@ -1,5 +1,6 @@
 """docbot-all: writes docs for every repo you own into docs/<repo>.md and keeps an index in README.md."""
 import datetime
+import hashlib
 import io
 import json
 import os
@@ -40,40 +41,55 @@ SKIP_DIRS = {"node_modules", "venv", ".venv", "dist", "build", "__pycache__", ".
 # Never send anything that looks like a secret to the AI.
 SECRET_HINTS = ("cookie", ".env", "secret", "token", "credential", "id_rsa", ".pem", ".key")
 
-PROMPT = """You are a technical writer. Write a clear, well-structured project document in Markdown \
-for the repository "{repo}", based ONLY on the files below.
+PROMPT = """You are a technical writer. Write a concise system document in Markdown for the \
+repository "{repo}", based ONLY on the files below.
 
 Rules:
-- Use only facts found in the files. Do not invent features, costs or numbers. If something is \
-not in the files, write "Not specified" or leave that point out.
-- Audience: semi-technical clients and recruiters, plus the owner/operator.
-- Use headings, short paragraphs, tables and bullet lists. No emoji.
-- Include exactly one Mermaid flowchart of the full workflow (```mermaid block).
-- Include one table of all tools and technologies (tool, what it is, role in this project, cost).
+- Concise and to the point: about 600-900 words in total. One-line bullets and table cells. \
+No intro or marketing paragraphs, no repeating the same fact in two sections.
+- Use only facts found in the files. Do not invent features, numbers or limits. For tool costs \
+and docs links you may use widely known public facts (e.g. "Free, open-source"); if unsure, \
+write "Not specified". Leave out a section's rows rather than padding them.
 - Never output secret values. Secret names are fine.
-- Output only the Markdown document, no commentary and no wrapping code fence.
+- No emoji. Output only the Markdown document, no commentary and no wrapping code fence.
 
-Structure:
-1. Title + one-line pitch
-2. At a glance (small table: inputs, outputs, time, cost, platforms)
-3. Problem it solves
-4. What it does (features)
-5. Full workflow, step by step (with Mermaid flowchart)
-6. Architecture
-7. Tools and technologies (table)
-8. Inputs and outputs
-9. Reliability and error handling
-10. Security
-11. Setup and configuration
-12. Usage guide
-13. Maintenance tasks
-14. Limitations
-15. Costs
-16. Possible future improvements (only if clearly implied by the files)
+Use exactly this structure and these headings:
+
+# <Product name> — System Documentation
+
+**Repo:** {repo_url} · **Purpose:** <one line> · **Cost:** <monthly cost or "Not specified"> · \
+**Runs:** <where/how it runs, one short phrase>
+
+## 1. Architecture overview
+One ```mermaid flowchart TD showing the main steps in order (trigger first, short node labels, \
+each step names the tool it uses). Then one or two sentences on what runs it and how.
+
+## 2. Tools and technologies used
+Table with columns: # | Tool | Purpose | Cost / Limits | Docs (domain only, e.g. ffmpeg.org).
+
+## 3. Project file structure
+A ```text tree of the important files and folders only, each with a short # comment.
+
+## 4. Configuration (environment variables)
+One line on where they are set. Table: Variable | Type (Secret / Variable / Code default) | Purpose. \
+Write "None." if the project has no configuration.
+
+## 5. External accounts required
+Bullets: account, and what it is used for.
+
+## 6. Known limitations
+Bullets: each limitation, and its workaround if the files mention one.
+
+## 7. Manual/recurring tasks (not automated)
+Table: Task | Frequency. Write "None." if there are none.
+
+## 8. Reusability for future projects
+2-4 bullets on which parts are modular and could be reused or swapped.
 
 FILES:
 {files}
 """
+PROMPT_VERSION = hashlib.sha1(PROMPT.encode()).hexdigest()[:8]  # docs are rebuilt when the prompt changes
 
 
 def load_state():
@@ -231,12 +247,13 @@ def main():
         name, full, branch = r["name"], r["full_name"], r["default_branch"]
         try:
             sha = head_sha(full, branch)
-            if not sha or state["repos"].get(name, {}).get("sha") == sha:
+            prev = state["repos"].get(name, {})
+            if not sha or (prev.get("sha") == sha and prev.get("prompt") == PROMPT_VERSION):
                 continue
             corpus = build_corpus(fetch_files(full, sha))
             if not corpus:
                 continue
-            doc = clean(generate(PROMPT.format(repo=full, files=corpus)))
+            doc = clean(generate(PROMPT.format(repo=full, repo_url=r["html_url"], files=corpus)))
         except Exception as e:
             print(f"Skipping {full}: {e}", file=sys.stderr)
             continue  # state not updated, so it is retried next run
@@ -246,6 +263,7 @@ def main():
             f.write(header + doc)
         state["repos"][name] = {
             "sha": sha,
+            "prompt": PROMPT_VERSION,
             "updated": TODAY,
             "url": r["html_url"],
             "description": r.get("description") or "",
