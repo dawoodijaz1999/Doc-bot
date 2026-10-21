@@ -20,6 +20,8 @@ HEAD = {
 INCLUDE_PRIVATE = os.environ.get("INCLUDE_PRIVATE", "false").lower() == "true"
 MAX_PER_RUN = int(os.environ.get("MAX_REPOS_PER_RUN", "10"))
 SELF = os.environ.get("GITHUB_REPOSITORY", "").split("/")[-1]
+OWNER = os.environ.get("GITHUB_REPOSITORY_OWNER", "").lower()
+SITE = f"https://{OWNER}.github.io/{SELF}" if OWNER and SELF else ""
 TODAY = datetime.datetime.now(datetime.timezone.utc).date().isoformat()
 
 STATE_FILE = "state.json"
@@ -238,7 +240,8 @@ def main():
         except Exception as e:
             print(f"Skipping {full}: {e}", file=sys.stderr)
             continue  # state not updated, so it is retried next run
-        header = f"> Auto-generated from [{full}]({r['html_url']}) at commit `{sha[:7]}` on {TODAY}.\n\n"
+        header = f"**Read online:** [{SITE}/docs/{name}.html]({SITE}/docs/{name}.html)\n\n" if SITE else ""
+        header += f"> Auto-generated from [{full}]({r['html_url']}) at commit `{sha[:7]}` on {TODAY}.\n\n"
         with open(f"docs/{name}.md", "w", encoding="utf-8") as f:
             f.write(header + doc)
         state["repos"][name] = {

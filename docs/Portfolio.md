@@ -1,3 +1,5 @@
+**Read online:** [https://dawoodijaz1999.github.io/Doc-bot/docs/Portfolio.html](https://dawoodijaz1999.github.io/Doc-bot/docs/Portfolio.html)
+
 > Auto-generated from [dawoodijaz1999/Portfolio](https://github.com/dawoodijaz1999/Portfolio) at commit `502494d` on 2026-10-21.
 
 1. Dawood Ijaz Portfolio — Full Stack & Backend Engineer Portfolio Application
