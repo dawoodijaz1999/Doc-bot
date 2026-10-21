@@ -2,125 +2,71 @@
 
 > Auto-generated from [dawoodijaz1999/Portfolio](https://github.com/dawoodijaz1999/Portfolio) at commit `502494d` on 2026-10-21.
 
-1. Dawood Ijaz Portfolio — Full Stack & Backend Engineer Portfolio Application
+# Dawood Ijaz — Portfolio — System Documentation
 
-## At a Glance
+**Repo:** https://github.com/dawoodijaz1999/Portfolio · **Purpose:** Personal portfolio showcasing skills, experience, and projects for a full-stack engineer · **Cost:** Free, open-source ($10/year optional custom domain) · **Runs:** Client browser via Vercel hosting
 
-| Parameter | Value |
-| :--- | :--- |
-| **Inputs** | User navigation actions, contact form details (name, email, message) |
-| **Outputs** | Rendered portfolio UI, Gmail contact compose link generation |
-| **Time** | Local setup: &lt; 2 minutes; Deployment: ~5 minutes |
-| **Cost** | Free (Hosted on Vercel; source code hosted on GitHub) |
-| **Platforms** | Web browsers via Vercel deployment |
-
-## Problem It Solves
-
-Provides a clean, professional, and responsive web presence for Dawood Ijaz to showcase full-stack and backend engineering capabilities, professional work history, technical skills, and key projects to recruiters and prospective clients.
-
-## What It Does (Features)
-
-- **Hero Section**: Introduces the engineer with dynamic headings, short professional summary, Quick statistics counters, and call-to-action buttons.
-- **About Me Section**: Provides a detailed professional background, soft skills tags, and direct communication contact channels (Email, Phone, WhatsApp, LinkedIn).
-- **Technical Skills Matrix**: Categorizes expertise across Frontend, Backend, State & Styling, and Tools & Cloud environments.
-- **Work Experience Timeline**: Details professional roles, dates, company assignments, and core engineering accomplishments.
-- **Project Showcase**: Displays production projects (Muebly, TCC, Phrase Lab AI, Camera by Centennial, Holos, WanderLust, Bummbuu, MERN Blog App) complete with tech stacks and links.
-- **Interactive Contact Form**: Captures name, email, and message inputs to generate a pre-filled Gmail compose link for direct communication.
-- **Responsive Navigation**: Includes a fixed, blurring navbar with smooth-scrolling section links and a mobile hamburger menu.
-- **Scroll Reveal Animations**: Implements IntersectionObserver hooks to gracefully reveal elements as users scroll down the page.
-
-## Full Workflow, Step by Step
-
+## 1. Architecture overview
 ```mermaid
 flowchart TD
-    A[Visitor Opens Site] --> B[Hero Section Loaded]
-    B --> C[User Scrolls / Navigates via Navbar]
-    C --> D[IntersectionObserver Triggers Section Reveal Animations]
-    D --> E[User Views About, Skills, Experience, and Projects]
-    E --> F[User Reaches Contact Section]
-    F --> G[User Submits Contact Form]
-    G --> H[System Opens Gmail Compose Link with Pre-filled Data]
+    A[Visitor Browser] -->|Requests site| B[Vercel CDN]
+    B -->|Serves static assets| C[React SPA]
+    C -->|Submits form / Opens email client| D[Gmail / EmailJS]
+```
+The portfolio runs entirely client-side as a single-page application built with React and Vite, rendered and hosted statically on Vercel. Contact interactions open the visitor's mail client or trigger EmailJS integration directly from the browser.
+
+## 2. Tools and technologies used
+| # | Tool | Purpose | Cost / Limits | Docs (domain only) |
+|---|---|---|---|---|
+| 1 | React | UI component library | Free, open-source | react.dev |
+| 2 | Vite | Build tool and dev server | Free, open-source | vitejs.dev |
+| 3 | EmailJS | Optional contact form email dispatch | Free tier limits | emailjs.com |
+| 4 | Vercel | Hosting and static deployment | Free tier | vercel.com |
+
+## 3. Project file structure
+```text
+portfolio/
+├── index.html         # Main HTML entry point with meta tags and fonts
+├── package.json       # Project dependencies and npm scripts
+├── vite.config.js     # Vite configuration file
+└── src/
+    ├── main.jsx       # React root rendering entry
+    ├── App.jsx        # Main application component and intersection observer hook
+    ├── index.css      # Global styles, variables, and theme definitions
+    ├── components/
+    │   ├── Navbar.jsx           # Top navigation bar
+    │   ├── Navbar.module.css    # Navbar styles
+    │   ├── Footer.jsx           # Page footer
+    │   └── Footer.module.css    # Footer styles
+    └── sections/
+        ├── Hero.jsx             # Hero intro section
+        ├── About.jsx            # About me and contact info card
+        ├── Skills.jsx           # Technical skills grid
+        ├── Experience.jsx       # Professional work experience timeline
+        ├── Projects.jsx         # Key projects showcase
+        └── Contact.jsx          # Contact form and links
 ```
 
-## Architecture
+## 4. Configuration (environment variables)
+None. (EmailJS credentials and project links are configured directly inside `src/sections/Contact.jsx` and `src/sections/Projects.jsx`).
 
-The application is built as a single-page React application bundled via Vite. It uses a component-driven architecture separating global UI containers (`Navbar`, `Footer`) from modular page content sections (`Hero`, `About`, `Skills`, `Experience`, `Projects`, `Contact`). Styling is handled via modular CSS files alongside global configuration rules in `src/index.css`.
+## 5. External accounts required
+- GitHub: Used for repository hosting and automated Vercel deployments.
+- Vercel: Used for hosting and deploying the static web application.
+- EmailJS: Used optionally for routing contact form submissions directly to Gmail.
+- Namecheap: Optional registrar for purchasing a custom domain.
 
-## Tools and Technologies
+## 6. Known limitations
+- Placeholder links: Projects default to `#` for GitHub and live demos unless manually replaced in `src/sections/Projects.jsx`. Workaround: update URLs before going live.
+- EmailJS credentials: Contact form defaults to opening a mailto/Gmail window unless EmailJS service, template, and public keys are supplied in `src/sections/Contact.jsx`.
 
-| Tool | What It Is | Role in This Project | Cost |
-| :--- | :--- | :--- | :--- |
-| **React.js** | JavaScript library | UI component construction and state management | Free |
-| **Vite** | Frontend build tool | Local development server and production bundling | Free |
-| **CSS Modules** | CSS styling approach | Scoped component styling | Free |
-| **EmailJS Browser SDK** | Third-party service SDK | Email handling documentation / integration support | Free |
-| **Vercel** | Cloud hosting platform | Production web hosting and continuous deployment | Free |
-| **Git / GitHub** | Version control | Code repository management and version tracking | Free |
+## 7. Manual/recurring tasks (not automated)
+| Task | Frequency |
+|---|---|
+| Update project items and work experience in component files | As needed |
+| Update GitHub repo URLs and live demo links | As needed |
 
-## Inputs and Outputs
-
-- **Inputs**:
-  - Scroll events and window viewport metrics.
-  - User click actions on navigation links and external profile cards.
-  - Form field values: `name`, `email`, `message`.
-- **Outputs**:
-  - Fully rendered, responsive HTML/CSS/JS portfolio interface.
-  - Dynamic `window.open` trigger opening a pre-populated Gmail compose URL.
-
-## Reliability and Error Handling
-
-- Form validation ensures that the user name, email, and message fields must not be empty before triggering submission.
-- Defensive code checks for element references during IntersectionObserver setup (`if (!el) return`).
-- Fallbacks for responsive design breakpoints to ensure readability across mobile devices.
-
-## Security
-
-- No secret values or API tokens are hardcoded into public repository files.
-- Configuration placeholders are provided for services like EmailJS (`EMAILJS_SERVICE_ID`, `EMAILJS_TEMPLATE_ID`, `EMAILJS_PUBLIC_KEY`).
-- Standard `.gitignore` rules prevent local environment files (`.env`), build directories (`dist/`), and dependency folders (`node_modules/`) from being committed.
-
-## Setup and Configuration
-
-1. Install project dependencies:
-   ```bash
-   npm install
-   ```
-2. Start the local development server (opens at `http://localhost:5173`):
-   ```bash
-   npm run dev
-   ```
-3. Update project GitHub/Live demo links in `src/sections/Projects.jsx`.
-4. Configure EmailJS keys in `src/sections/Contact.jsx` if using direct API email sending.
-
-## Usage Guide
-
-- Browse sections by clicking navigation links in the header or scrolling down the page.
-- Review technical competencies and project cards to evaluate past work.
-- Use the contact form or direct links in the About/Contact sections to reach out via Email, WhatsApp, Phone, or LinkedIn.
-
-## Maintenance Tasks
-
-- Periodically run `npm update` to check for dependency updates.
-- Keep project links and work experience logs updated in their respective component files (`Projects.jsx`, `Experience.jsx`).
-- Test production builds locally prior to deployment:
-  ```bash
-  npm run build
-  npm run preview
-  ```
-
-## Limitations
-
-- The portfolio frontend is purely static/client-side rendering.
-- The contact form submission relies on opening an external mail client / Gmail compose URL link rather than a dedicated backend endpoint unless configured otherwise.
-
-## Costs
-
-- **Hosting**: Free on Vercel.
-- **Domain**: Optional custom domain (~$10/year via providers like Namecheap).
-- **Total Operational Cost**: Free (excluding optional custom domain).
-
-## Possible Future Improvements
-
-- Fully integrate EmailJS runtime submission directly in the contact form instead of redirecting to the Gmail compose window.
-- Add live metrics or status indicators for active projects.
-- Implement a dark/light mode toggle theme switcher.
+## 8. Reusability for future projects
+- The component layout and CSS module structure can be reused for other developer portfolios or single-page landing sites.
+- Intersection observer hooks (`useReveal`) inside components can be adapted for scroll-triggered fade animations.
+- The Vite and React build pipeline configuration can serve as a template for static SPAs.
