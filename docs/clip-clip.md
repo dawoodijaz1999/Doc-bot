@@ -1,85 +1,83 @@
 **Read online:** [https://dawoodijaz1999.github.io/Doc-bot/docs/clip-clip.html](https://dawoodijaz1999.github.io/Doc-bot/docs/clip-clip.html)
 
-> Auto-generated from [dawoodijaz1999/clip-clip](https://github.com/dawoodijaz1999/clip-clip) at commit `d3f25cb` on 2026-11-01.
+> Auto-generated from [dawoodijaz1999/clip-clip](https://github.com/dawoodijaz1999/clip-clip) at commit `6a3a594` on 2026-11-03.
 
 # clip-clip — System Documentation
 
-**Repo:** https://github.com/dawoodijaz1999/clip-clip · **Purpose:** Turn long videos from Discord into 5 vertical clips with AI hooks and captions · **Cost:** Not specified · **Runs:** GitHub Actions (scheduled/manual) or local systemd user service
+**Repo:** https://github.com/dawoodijaz1999/clip-clip · **Purpose:** Turn long videos into 5 vertical clips with AI hooks and captions from Discord links or files · **Cost:** Free, open-source · **Runs:** GitHub Actions (scheduled/manual) or local systemd user service
 
 ## 1. Architecture overview
 ```mermaid
 flowchart TD
-    A["Discord message<br/>file / Drive / Dropbox / YouTube"] --> B["Poller: clip.py<br/>GitHub Actions or systemd"]
-    B --> C["Downloader<br/>requests or yt-dlp"]
-    C --> D["AI Analyzer<br/>Gemini API"]
-    D --> E["Video Renderer<br/>ffmpeg"]
-    E --> F["Release Publisher<br/>GitHub Releases via gh CLI"]
-    F --> G["Discord Notifier<br/>Discord REST API"]
+    A["Discord message<br/>file / Drive / Dropbox / YouTube link"] --> B["GitHub Actions (every 15 min or manual)<br/>or local systemd service (every 30 s)"]
+    B --> C["Download<br/>Discord CDN, Drive, Dropbox or yt-dlp"]
+    C --> D["Gemini picks 5 moments<br/>and writes hooks + captions"]
+    D --> E["ffmpeg renders 1080x1920 clips"]
+    E --> F["GitHub Release"]
+    F --> G["Links posted in Discord"]
+    F --> H["Releases auto-deleted after 7 days"]
 ```
-The system runs via GitHub Actions (every 15 minutes) or a local systemd service polling Discord every 30 seconds. A Discord emoji reaction lock (`⏳`) prevents concurrent processing of the same message between cloud and local runners.
+The cloud runner and local service poll Discord messages, using message reactions as a concurrency lock to avoid processing the same video twice. Processed clips are uploaded to GitHub Releases and posted back to the Discord channel.
 
 ## 2. Tools and technologies used
 | # | Tool | Purpose | Cost / Limits | Docs |
 |---|---|---|---|---|
-| 1 | Python | Runtime language (v3.12) | Free, open-source | python.org |
-| 2 | Discord API | Bot interface for receiving input messages and posting output clips | Free tier rate limits apply | discord.com |
-| 3 | Google Gemini API | Audio analysis, moment selection, hook and caption generation | Free tier or pay-as-you-go | ai.google.dev |
-| 4 | ffmpeg / ffprobe | Audio extraction, duration detection, cropping, scaling, text rendering | Free, open-source | ffmpeg.org |
-| 5 | yt-dlp | YouTube video downloading | Free, open-source | github.com |
-| 6 | Deno | JavaScript runtime dependency for yt-dlp download checks | Free, open-source | deno.com |
-| 7 | GitHub Actions | Cloud automation runner for scheduled and dispatched jobs | Free tier delay (1-4 hours) / 90 min timeout | github.com |
-| 8 | GitHub Releases | Storage and hosting for generated video clips | 7-day retention policy | github.com |
-| 9 | systemd | Local background service supervisor | Free, open-source | systemd.io |
+| 1 | Python | Core application runtime | Free, open-source | python.org |
+| 2 | Discord bot | Message polling, user reactions, and chat posting | Free API limits | discord.com |
+| 3 | Gemini API | Audio understanding and moment selection | Free / Tiered limits | ai.google.dev |
+| 4 | ffmpeg / ffprobe | Video downscaling, cropping, and audio extraction | Free, open-source | ffmpeg.org |
+| 5 | yt-dlp | YouTube and streaming media downloader | Free, open-source | github.com |
+| 6 | Deno | JavaScript runtime for yt-dlp challenges | Free, open-source | deno.com |
+| 7 | GitHub Actions | Cloud-based automated execution runner | Free tier limits | github.com |
+| 8 | GitHub Releases | Temporary cloud hosting for generated MP4 clips | Free, 2GB per release limit | github.com |
+| 9 | systemd | Local host service manager for continuous polling | Free, OS-native | freedesktop.org |
 
 ## 3. Project file structure
 ```text
-dawoodijaz1999/clip-clip/
+clip-clip/
 ├── .github/
-│   ├── keepalive                # Timestamp file updated monthly to prevent workflow disabling
+│   ├── keepalive              # Monthly timestamp commit to keep repo active
 │   └── workflows/
-│       ├── clip.yml             # Main runner workflow: checks work, downloads, renders, releases
-│       └── keepalive.yml        # Monthly commit workflow to keep schedule active
-├── .gitignore                   # Excludes env files, cookies, virtual environments, and media
-├── clip.py                      # Core application: polling, downloading, AI prompt, rendering, posting
-├── README.md                    # Setup instructions, architecture overview, and operational notes
-├── requirements.txt             # Python package dependencies
-└── STATUS.md                    # Project development log, fixes, and current status
+│       ├── clip.yml           # GitHub Actions cloud runner workflow
+│       └── keepalive.yml      # GitHub Actions keepalive workflow
+├── clip.py                    # Main application script
+├── requirements.txt           # Python package dependencies
+├── STATUS.md                  # Development history and testing notes
+├── README.md                  # User instructions and documentation
+└── .gitignore                 # Ignored local files, outputs, and secrets
 ```
 
 ## 4. Configuration (environment variables)
-Variables are configured in GitHub Repository Secrets, `.github/workflows/clip.yml` workflow env, or a local `.env` file.
+Set in `.env` for local mode or GitHub Actions repository secrets for cloud mode.
 
-| Variable | Type | Purpose |
+| Variable | Type (Secret / Variable / Code default) | Purpose |
 |---|---|---|
-| `DISCORD_BOT_TOKEN` | Secret | Authenticates bot to read channels, add reactions, and post messages |
-| `GEMINI_API_KEY` | Secret | Authenticates requests to Gemini API models |
-| `YT_COOKIES` | Secret | Exported browser cookies to bypass YouTube bot blocks on cloud runners |
-| `GH_TOKEN` | Secret | GitHub authentication token for releasing assets via `gh` CLI |
-| `DISCORD_CHANNEL_ID` | Variable | Target Discord channel ID for monitoring inputs and posting clips |
-| `GITHUB_REPOSITORY` | Variable | Target GitHub repo (`dawoodijaz1999/clip-clip` by default) |
+| `DISCORD_BOT_TOKEN` | Secret | Authenticate the Discord bot API client |
+| `DISCORD_CHANNEL_ID` | Variable | Target Discord channel ID for polling and posting |
+| `GEMINI_API_KEY` | Secret | Authenticate calls to the Gemini AI API |
+| `YT_COOKIES` | Secret | Optional YouTube cookies text for bypassing bot blocks |
+| `GH_TOKEN` | Code default (`github.token`) | Authenticate GitHub CLI release creation and deletion |
 
 ## 5. External accounts required
-- Discord Developer Portal account: creates the application bot with Message Content Intent enabled.
-- Google Cloud / AI Studio account: provides the API key for Gemini models.
-- GitHub account: runs GitHub Actions workflows and hosts output clips via Releases.
-- Google account (throwaway): exports browser `cookies.txt` for YouTube cloud downloads.
+- Discord Developer Account: used to create a bot application and obtain a bot token.
+- Google AI Studio Account: used to generate a Gemini API Key for audio analysis.
+- YouTube Account (optional): used to export cookies (`YT_COOKIES`) to prevent download blocks on cloud runners.
+- GitHub Account: hosts the repository, Actions runner, and temporary Releases storage.
 
 ## 6. Known limitations
-- GitHub Actions free-tier schedules may face 1-4 hour delays; manual workflow dispatch or local systemd service must be used for immediate runs.
-- Direct video uploads and links cannot exceed 500 MB; users must provide external drive links for larger files.
-- Google Drive and Dropbox files must be explicitly shared as "Anyone with the link".
-- YouTube blocks cloud runners if cookies expire; `YT_COOKIES` must be refreshed manually every few weeks.
-- Output release links hosted on GitHub Releases are publicly accessible until deleted.
-- Gemini failures trigger evenly spaced clips with generic fallback captions instead of AI-selected highlights.
+- GitHub free-tier scheduled runs can be delayed by 1 to 4 hours.
+- Video inputs are limited to 500 MB maximum file size.
+- Google Drive and Dropbox links must share permissions set to "Anyone with the link".
+- YouTube cookies (`YT_COOKIES`) expire every few weeks and require manual refreshing.
+- Clip download links are public URLs until the release is automatically deleted after 7 days.
 
 ## 7. Manual/recurring tasks (not automated)
 | Task | Frequency |
 |---|---|
-| Export fresh YouTube `cookies.txt` from desktop browser to update `YT_COOKIES` secret | Every few weeks |
-| Dispatch workflow with `test_url` input to verify cookie validity | As needed |
-| Resubmit source video links that encountered failures or premature deletions | As needed |
+| Refresh YouTube cookies (`YT_COOKIES`) | Every few weeks |
 
 ## 8. Reusability for future projects
-- The `find_moments` function and JSON prompt schema can be extracted to analyze audio and generate short-form highlights for any video pipeline.
-- The ffmpeg 9:16 vertical scaling, center-crop, and hook-text overlay filter chain is modular and adaptable for any vertical video generator.
-- The `download_file` logic for Google Drive and Dropbox direct URL conversions can be reused in any media processing tool.
+- The Discord bot polling and reaction-lock pattern is modular and can be reused for other event-driven chat automations.
+- The yt-dlp wrapper and direct downloader logic can be extracted for standalone media ingestion pipelines.
+- The Gemini API fallback rotation and JSON extraction routine can be reused for resilient LLM tasks.
+- The ffmpeg rendering pipeline can be adapted for any automated vertical video generation workflow.
